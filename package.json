@@ -1,0 +1,15 @@
+{
+  "name": "pns-logger",
+  "version": "2.0.0",
+  "description": "",
+  "main": "pns-logger.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "dependencies": {
+    "bunyan": "^2.0.2",
+    "mongoose": "4.5.10"
+  },
+  "author": "",
+  "license": "ISC"
+}

@@ -2,9 +2,19 @@ var settings = require('/src/settings/settings_main').settings,
     bunyan = require('bunyan'),
     mongoose = require('mongoose'),
     Schema = mongoose.Schema,
+    mongodb,
     ObjectId = Schema.ObjectId,
-    mongodb = mongoose.connect(settings.mongo_dsn_logs),
     pns_instance = process.env.PNS_INSTANCE;
+
+    console.log(settings.mongo_dsn_logs)
+
+    
+
+    try {
+        mongodb = mongoose.connect(settings.mongo_dsn_logs)
+    } catch(error) {
+        console.error(error);
+    }
 
 mongoose.Promise = global.Promise;
 

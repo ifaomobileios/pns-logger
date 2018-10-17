@@ -48,20 +48,28 @@ exports.logger = bunyan.createLogger({
     context: pns_instance,
     type: '',
     msg: '',
-    content: {},
-    streams: [
-        {
-            level: 'info',
-            name: 'info',
-            stream: process.stdout
-        },
-        {
-            level: 'error',
-            name: 'error',
-            stream: process.stderr
-        }
-    ]
+    content: {}
 });
+
+// exports.logger = bunyan.createLogger({ 
+//     name: 'pns-logger',
+//     context: pns_instance,
+//     type: '',
+//     msg: '',
+//     content: {},
+//     streams: [
+//         {
+//             level: 'info',
+//             name: 'info',
+//             stream: process.stdout
+//         },
+//         {
+//             level: 'error',
+//             name: 'error',
+//             stream: process.stderr
+//         }
+//     ]
+// });
 
 exports.log = function (mongoDoc) {
     mongoDoc.timestamp = Date.parse('now').toString('yyyy-MM-dd HH:mm:ss');

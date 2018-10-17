@@ -3,12 +3,7 @@ var settings = require('/src/settings/settings_main').settings,
     mongoose = require('mongoose'),
     Schema = mongoose.Schema,
     mongodb,
-    ObjectId = Schema.ObjectId,
     pns_instance = process.env.PNS_INSTANCE;
-
-    console.log(settings.mongo_dsn_logs)
-
-    
 
     try {
         mongodb = mongoose.connect(settings.mongo_dsn_logs)
@@ -73,18 +68,15 @@ exports.logger = bunyan.createLogger({
     ]
 });
 
-exports.log = function (mongoDoc, elkToken) {
-    var elkTokenRegex = elkToken ? `[${elkToken}] ` : '';
-
+exports.log = function (mongoDoc) {
     mongoDoc.timestamp = Date.parse('now').toString('yyyy-MM-dd HH:mm:ss');
 
     console.log('doc for logging:');
-    console.log(`${elkTokenRegex}`, JSON.stringify(mongoDoc, null, 4));
+    console.log(JSON.stringify(mongoDoc, null, 4));
 
     var mDoc = new LogEntry(mongoDoc);
     mDoc.save(function (err) {
         if (err) {
-            console.log('Error in logging!');
             console.log(err);
         }
     });

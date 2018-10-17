@@ -56,14 +56,9 @@ exports.logger = bunyan.createLogger({
             stream: process.stdout
         },
         {
-            level: 'warn',
-            name: 'warn',
-            stream: process.stdout
-        },
-        {
             level: 'error',
             name: 'error',
-            stream: process.stdout
+            stream: process.stderr
         }
     ]
 });

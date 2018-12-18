@@ -5,11 +5,11 @@ var settings = require('/src/settings/settings_main').settings,
     mongodb,
     pns_instance = process.env.PNS_INSTANCE;
 
-    try {
-        mongodb = mongoose.connect(settings.mongo_dsn_logs)
-    } catch(error) {
-        console.error(error);
-    }
+try {
+    mongodb = mongoose.connect(settings.mongo_dsn_logs)
+} catch (error) {
+    console.error(error);
+}
 
 mongoose.Promise = global.Promise;
 
@@ -43,7 +43,8 @@ LogEntrySchema.path('message', {
 
 var LogEntry = mongodb.model('pnslog', LogEntrySchema);
 
-exports.logger = bunyan.createLogger({ 
+exports.logger = bunyan.createLogger({
+    serializers: { err: bunyan.stdSerializers.err },
     name: 'pns-logger',
     context: pns_instance,
     type: '',

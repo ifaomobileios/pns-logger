@@ -49,7 +49,7 @@ exports.logger = bunyan.createLogger({
     context: pns_instance,
     type: '',
     msg: '',
-    content: {},
+    content: {}
 });
 
 // exports.logger = bunyan.createLogger({ 

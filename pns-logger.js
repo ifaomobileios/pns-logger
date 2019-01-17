@@ -49,7 +49,7 @@ exports.logger = bunyan.createLogger({
     context: pns_instance,
     type: '',
     msg: '',
-    logId: generateLogId(),
+    logId: '',
     content: {}
 });
 
@@ -87,7 +87,7 @@ exports.log = function (mongoDoc) {
     });
 }
 
-function generateLogId () {
+exports.generateLogId = function () {
     return  Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
 }
 

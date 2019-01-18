@@ -41,12 +41,12 @@ exports.logger = bunyan.createLogger({
 exports.log = (mongoDoc) => {
     let timestamp = new Date();
 
-    mongoDoc.timestamp = d.getFullYear() + "-" +
-        ("0" + d.getMonth() + 1).slice(-2) + "-" +
-        ("0" + d.getDate()).slice(-2) + " " +
-        ("0" + d.getHours()).slice(-2) + ":" +
-        ("0" + d.getMinutes()).slice(-2) + ":" +
-        ("0" + d.getSeconds()).slice(-2);;
+    mongoDoc.timestamp = timestamp.getFullYear() + "-" +
+        ("0" + timestamp.getMonth() + 1).slice(-2) + "-" +
+        ("0" + timestamp.getDate()).slice(-2) + " " +
+        ("0" + timestamp.getHours()).slice(-2) + ":" +
+        ("0" + timestamp.getMinutes()).slice(-2) + ":" +
+        ("0" + timestamp.getSeconds()).slice(-2);;
 
     console.log('doc for logging:');
     console.log(JSON.stringify(mongoDoc, null, 4));

@@ -1,9 +1,11 @@
-var settings = require('/src/settings/settings_main').settings,
+let settings = require('/src/settings/settings_main').settings,
     bunyan = require('bunyan'),
     mongoose = require('mongoose'),
     Schema = mongoose.Schema,
     mongodb,
     pns_instance = process.env.PNS_INSTANCE;
+
+mongoose.Promise = global.Promise;
 
 try {
     mongodb = mongoose.connect(settings.mongo_dsn_logs)
@@ -11,27 +13,11 @@ try {
     console.error(error);
 }
 
-mongoose.Promise = global.Promise;
-
 // mongo logger
-var LogEntrySchema = new Schema({
-    'Device ID': String,
-    'User ID': String,
-    'Server Name': String,
-    'System Name': String,
-    'Application ID': String,
-    'Device Type': String,
-    'level': String,
-    'tag': String,
-    'timestamp': String,
-    'message': String,
-    'PUSH URL': String,
-    'MANIC MESSENGER RESULT': String,
-    'ROUTING KEY': String
-});
+let LogEntrySchema = new Schema(settings.schemas.log);
 
 LogEntrySchema.path('message', {
-    set: function (data) {
+    set: (data) => {
         if ('string' === typeof data) {
             return data;
         } else {
@@ -40,8 +26,7 @@ LogEntrySchema.path('message', {
     }
 });
 
-
-var LogEntry = mongodb.model('pnslog', LogEntrySchema);
+let LogEntry = mongodb.model('pnslog', LogEntrySchema);
 
 exports.logger = bunyan.createLogger({
     serializers: { err: bunyan.stdSerializers.err },
@@ -49,43 +34,35 @@ exports.logger = bunyan.createLogger({
     context: pns_instance,
     type: '',
     msg: '',
+    logId: '',
     content: {}
 });
 
-// exports.logger = bunyan.createLogger({ 
-//     name: 'pns-logger',
-//     context: pns_instance,
-//     type: '',
-//     msg: '',
-//     content: {},
-//     streams: [
-//         {
-//             level: 'info',
-//             name: 'info',
-//             stream: process.stdout
-//         },
-//         {
-//             level: 'error',
-//             name: 'error',
-//             stream: process.stderr
-//         }
-//     ]
-// });
+exports.log = (mongoDoc) => {
+    let timestamp = new Date();
 
-exports.log = function (mongoDoc) {
-    mongoDoc.timestamp = Date.parse('now').toString('yyyy-MM-dd HH:mm:ss');
+    mongoDoc.timestamp = timestamp.getFullYear() + "-" +
+        ("0" + timestamp.getMonth() + 1).slice(-2) + "-" +
+        ("0" + timestamp.getDate()).slice(-2) + " " +
+        ("0" + timestamp.getHours()).slice(-2) + ":" +
+        ("0" + timestamp.getMinutes()).slice(-2) + ":" +
+        ("0" + timestamp.getSeconds()).slice(-2);;
 
     console.log('doc for logging:');
     console.log(JSON.stringify(mongoDoc, null, 4));
 
-    var mDoc = new LogEntry(mongoDoc);
-    mDoc.save(function (err) {
+    let mDoc = new LogEntry(mongoDoc);
+    mDoc.save((err) => {
         if (err) {
             console.log(err);
         }
     });
 }
 
+exports.generateLogId = () => {
+    return Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+}
+
 exports.mongodb = mongodb;
 exports.LogEntry = LogEntry;
-exports.disconnect = function () { mongodb.disconnect() };
+exports.disconnect = () => { mongodb.disconnect() };

@@ -34,8 +34,8 @@ exports.logger = bunyan.createLogger({
     context: pns_instance,
     type: '',
     msg: '',
+    json: '',
     logId: '',
-    content: {}
 });
 
 exports.log = (mongoDoc) => {

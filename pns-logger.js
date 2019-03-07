@@ -3,7 +3,9 @@ let settings = require('/src/settings/settings_main').settings,
     mongoose = require('mongoose'),
     Schema = mongoose.Schema,
     mongodb,
-    pns_instance = process.env.PNS_INSTANCE;
+    pns_instance = process.env.PNS_INSTANCE,
+    localStorage = require('continuation-local-storage');
+
 
 mongoose.Promise = global.Promise;
 
@@ -28,15 +30,80 @@ LogEntrySchema.path('message', {
 
 let LogEntry = mongodb.model('pnslog', LogEntrySchema);
 
-exports.logger = bunyan.createLogger({
-    serializers: { err: bunyan.stdSerializers.err },
+function getRequestLogId () {
+    let request = localStorage.getNamespace('request');
+    return  request && request.get('logId') || undefined;
+}
+
+let requestNamespace = localStorage.createNamespace('request');
+
+let logger = bunyan.createLogger({
+    serializers: {
+        err: bunyan.stdSerializers.err
+    },
     name: 'pns-logger',
     context: pns_instance,
     type: '',
     msg: '',
-    json: '',
-    logId: '',
+    content: {}
 });
+
+function generateLogId () {
+    return Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+}
+
+function executeLog (param1, param2, method)  {
+
+    let reqId = getRequestLogId();
+
+    if (typeof param1 === 'string')
+        return logger[method]({reqId}, param1)
+
+    if (typeof param1 === 'object') {
+        param1.logId = param1.logId ? param1.logId : reqId;
+        return logger[method](param1, param2 || '');
+    }
+}
+
+exports.logger = {
+
+    info: (param1, param2) => {
+        executeLog(param1, param2, 'info')
+    },
+    error: (param1, param2) => {
+        executeLog(param1, param2, 'error')
+    },
+    warn: (param1, param2) => {
+        executeLog(param1, param2, 'warn')
+    },
+    debug: (param1, param2) => {
+        executeLog(param1, param2, 'debug')
+    },
+    fatal: (param1, param2) => {
+        executeLog(param1, param2, 'fatal')
+    },
+    trace: (param1, param2) => {
+        executeLog(param1, param2, 'trace')
+    }
+
+};
+
+exports.middleware = (req, res, next) => {
+
+    requestNamespace.run(() => {
+        let logId = generateLogId();
+        requestNamespace.set('logId', logId);
+        logger.info({
+            type: 'app',
+            requestMethod: req.method,
+            requestUrl: req.originalUrl,
+            requestBody: JSON.stringify(req.body) || undefined,
+            logId
+        });
+
+        next();
+    });
+}
 
 exports.log = (mongoDoc) => {
     let timestamp = new Date();
@@ -57,10 +124,6 @@ exports.log = (mongoDoc) => {
             console.log(err);
         }
     });
-}
-
-exports.generateLogId = () => {
-    return Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
 }
 
 exports.mongodb = mongodb;

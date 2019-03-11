@@ -4,7 +4,7 @@ let settings = require('/src/settings/settings_main').settings,
     Schema = mongoose.Schema,
     mongodb,
     pns_instance = process.env.PNS_INSTANCE,
-    localStorage = require('continuation-local-storage');
+    localStorage = require('cls-hooked');
 
 
 mongoose.Promise = global.Promise;

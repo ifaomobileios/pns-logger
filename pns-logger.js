@@ -6,7 +6,6 @@ let settings = require('/src/settings/settings_main').settings,
     pns_instance = process.env.PNS_INSTANCE,
     localStorage = require('cls-hooked');
 
-
 mongoose.Promise = global.Promise;
 
 try {
@@ -37,7 +36,7 @@ function getRequestLogId () {
 
 let requestNamespace = localStorage.createNamespace('request');
 
-let logger = bunyan.createLogger({
+let bunyanLogger = bunyan.createLogger({
     serializers: {
         err: bunyan.stdSerializers.err
     },
@@ -57,15 +56,15 @@ function executeLog (param1, param2, method)  {
     let reqId = getRequestLogId();
 
     if (typeof param1 === 'string')
-        return logger[method]({reqId}, param1)
+        return bunyanLogger[method]({reqId}, param1);
 
     if (typeof param1 === 'object') {
         param1.logId = param1.logId ? param1.logId : reqId;
-        return logger[method](param1, param2 || '');
+        return bunyanLogger[method](param1, param2 || '');
     }
 }
 
-exports.logger = {
+let logger = {
 
     info: (param1, param2) => {
         executeLog(param1, param2, 'info')
@@ -88,22 +87,69 @@ exports.logger = {
 
 };
 
-exports.middleware = (req, res, next) => {
+exports.logger =logger;
 
-    requestNamespace.run(() => {
-        let logId = generateLogId();
-        requestNamespace.set('logId', logId);
-        logger.info({
-            type: 'app',
-            requestMethod: req.method,
-            requestUrl: req.originalUrl,
-            requestBody: JSON.stringify(req.body) || undefined,
-            logId
-        });
+function attachResponseBody (req, res) {
 
-        next();
-    });
+    let oldWrite = res.write,
+        oldEnd = res.end;
+
+    let chunks = [];
+
+    res.write = function (chunk) {
+        chunks.push(chunk);
+
+        oldWrite.apply(res, arguments)
+    };
+
+    res.end = function (chunk) {
+        if (chunk)
+            chunks.push(chunk);
+
+        let body = Buffer.concat(chunks).toString('utf8');
+        res.responseBody = body;
+        oldEnd.apply(res, arguments);
+    }
+
 }
+
+exports.middleware = function (options) {
+
+    let defaultOptions = {
+        attachResponseBody: true
+    };
+
+    if (options)
+        defaultOptions = Object.assign(defaultOptions, options);
+
+
+    return function (req, res, next) {
+
+        if(defaultOptions.attachResponseBody)
+            attachResponseBody(req, res);
+
+        requestNamespace.run(() => {
+            let logId = generateLogId();
+            requestNamespace.set('logId', logId);
+
+            logger.info({
+                type: 'app',
+                requestMethod: req.method,
+                requestUrl: req.originalUrl,
+                requestBody: JSON.stringify(req.body) || undefined
+            }, 'Incoming request');
+
+            res.on('finish', () => {
+                logger.info({
+                    type: 'app',
+                    responseBody: res.responseBody || undefined
+                }, 'Request completed');
+            });
+
+            next();
+        });
+    }
+};
 
 exports.log = (mongoDoc) => {
     let timestamp = new Date();
@@ -124,7 +170,7 @@ exports.log = (mongoDoc) => {
             console.log(err);
         }
     });
-}
+};
 
 exports.mongodb = mongodb;
 exports.LogEntry = LogEntry;

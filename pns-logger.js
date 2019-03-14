@@ -94,20 +94,18 @@ function attachResponseBody (req, res) {
     let oldWrite = res.write,
         oldEnd = res.end;
 
-    let chunks = [];
+    let chunks = "";
 
     res.write = function (chunk) {
-        chunks.push(chunk);
-
-        oldWrite.apply(res, arguments)
+        chunks += chunk.toString('utf8');
+        oldWrite.apply(res,arguments)
     };
 
     res.end = function (chunk) {
         if (chunk)
-            chunks.push(chunk);
+            chunks += chunk.toString('utf8');;
 
-        let body = Buffer.concat(chunks).toString('utf8');
-        res.responseBody = body;
+        res.responseBody = chunks;
         oldEnd.apply(res, arguments);
     }
 
@@ -142,7 +140,8 @@ exports.middleware = function (options) {
             res.on('finish', () => {
                 logger.info({
                     type: 'app',
-                    responseBody: res.responseBody || undefined
+                    responseBody: res.responseBody || undefined,
+                    responseStatus: res.statusCode
                 }, 'Request completed');
             });
 
@@ -159,7 +158,7 @@ exports.log = (mongoDoc) => {
         ("0" + timestamp.getDate()).slice(-2) + " " +
         ("0" + timestamp.getHours()).slice(-2) + ":" +
         ("0" + timestamp.getMinutes()).slice(-2) + ":" +
-        ("0" + timestamp.getSeconds()).slice(-2);;
+        ("0" + timestamp.getSeconds()).slice(-2);
 
     console.log('doc for logging:');
     console.log(JSON.stringify(mongoDoc, null, 4));

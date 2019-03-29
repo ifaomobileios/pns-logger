@@ -3,8 +3,9 @@ let settings = require('/src/settings/settings_main').settings,
     mongoose = require('mongoose'),
     Schema = mongoose.Schema,
     mongodb,
-    pns_instance = process.env.PNS_INSTANCE,
+    pns_instance = process.env.NODE_ENV,
     localStorage = require('cls-hooked');
+var moment = require('moment');
 
 mongoose.Promise = global.Promise;
 
@@ -40,6 +41,7 @@ let bunyanLogger = bunyan.createLogger({
     serializers: {
         err: bunyan.stdSerializers.err
     },
+    time: moment().format(),
     name: 'pns-logger',
     context: pns_instance,
     type: '',
@@ -105,7 +107,10 @@ function attachResponseBody (req, res) {
         if (chunk)
             chunks += chunk.toString('utf8');;
 
-        res.responseBody = chunks;
+        try {
+            res.responseBody = JSON.parse(chunks.toString());
+        }
+        catch(e){};
         oldEnd.apply(res, arguments);
     }
 
@@ -133,14 +138,18 @@ exports.middleware = function (options) {
             logger.info({
                 type: 'app',
                 requestMethod: req.method,
+                json: {
+                    requestBody: req.body || undefined
+                },
                 requestUrl: req.originalUrl,
-                requestBody: JSON.stringify(req.body) || undefined
             }, 'Incoming request');
 
             res.on('finish', () => {
                 logger.info({
                     type: 'app',
-                    responseBody: res.responseBody || undefined,
+                    json: {
+                        responseBody: res.responseBody || undefined
+                    },
                     responseStatus: res.statusCode
                 }, 'Request completed');
             });
@@ -151,22 +160,17 @@ exports.middleware = function (options) {
 };
 
 exports.log = (mongoDoc) => {
-    let timestamp = new Date();
 
-    mongoDoc.timestamp = timestamp.getFullYear() + "-" +
-        ("0" + timestamp.getMonth() + 1).slice(-2) + "-" +
-        ("0" + timestamp.getDate()).slice(-2) + " " +
-        ("0" + timestamp.getHours()).slice(-2) + ":" +
-        ("0" + timestamp.getMinutes()).slice(-2) + ":" +
-        ("0" + timestamp.getSeconds()).slice(-2);
+    mongoDoc.timestamp = moment().format('YYYY-DD-MM HH:mm:ss');
 
-    console.log('doc for logging:');
-    console.log(JSON.stringify(mongoDoc, null, 4));
+    logger.info('doc for logging:');
+    logger.info({json: {mongoDoc}});
 
     let mDoc = new LogEntry(mongoDoc);
+
     mDoc.save((err) => {
         if (err) {
-            console.log(err);
+            logger.warn(err);
         }
     });
 };

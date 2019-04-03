@@ -41,7 +41,6 @@ let bunyanLogger = bunyan.createLogger({
     serializers: {
         err: bunyan.stdSerializers.err
     },
-    time: moment().format(),
     name: 'pns-logger',
     context: pns_instance,
     type: '',

@@ -137,18 +137,14 @@ exports.middleware = function (options) {
             logger.info({
                 type: 'app',
                 requestMethod: req.method,
-                json: {
-                    requestBody: req.body || undefined
-                },
+                json: req.body || undefined,
                 requestUrl: req.originalUrl,
             }, 'Incoming request');
 
             res.on('finish', () => {
                 logger.info({
                     type: 'app',
-                    json: {
-                        responseBody: res.responseBody || undefined
-                    },
+                    json: res.responseBody || undefined,
                     responseStatus: res.statusCode
                 }, 'Request completed');
             });

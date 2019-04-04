@@ -136,16 +136,19 @@ exports.middleware = function (options) {
 
             logger.info({
                 type: 'app',
-                requestMethod: req.method,
                 json: req.body || undefined,
+                requestHeaders: req.headers,
                 requestUrl: req.originalUrl,
+                requestMethod: req.method
             }, 'Incoming request');
 
             res.on('finish', () => {
                 logger.info({
                     type: 'app',
                     json: res.responseBody || undefined,
-                    responseStatus: res.statusCode
+                    responseStatus: res.statusCode,
+                    requestUrl: req.originalUrl,
+                    requestMethod: req.method,
                 }, 'Request completed');
             });
 

@@ -1,22 +1,38 @@
-let settings = require('/src/settings/settings_main').settings,
-    bunyan = require('bunyan'),
+let bunyan = require('bunyan'),
     mongoose = require('mongoose'),
     Schema = mongoose.Schema,
     mongodb,
     pns_instance = process.env.NODE_ENV,
+    DB_LOGS_URL = process.env.DB_LOGS_URL,
     localStorage = require('cls-hooked');
 var moment = require('moment');
 
 mongoose.Promise = global.Promise;
 
 try {
-    mongodb = mongoose.connect(settings.mongo_dsn_logs)
+    mongodb = mongoose.connect(DB_LOGS_URL)
 } catch (error) {
     console.error(error);
 }
 
 // mongo logger
-let LogEntrySchema = new Schema(settings.schemas.log);
+let logSchema = {
+    'Device ID': String,
+    'User ID': String,
+    'Server Name': String,
+    'System Name': String,
+    'Application ID': String,
+    'Device Type': String,
+    'level': String,
+    'tag': String,
+    'timestamp': String,
+    'message': String,
+    'PUSH URL': String,
+    'MANIC MESSENGER RESULT': String,
+    'ROUTING KEY': String
+};
+
+let LogEntrySchema = new Schema(logSchema);
 
 LogEntrySchema.path('message', {
     set: (data) => {

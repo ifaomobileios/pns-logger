@@ -1,16 +1,20 @@
 let bunyan = require('bunyan'),
     mongoose = require('mongoose'),
+    zlib = require("zlib"),
     Schema = mongoose.Schema,
     mongodb,
-    pns_instance = process.env.NODE_ENV,
-    DB_LOGS_URL = process.env.DB_LOGS_URL,
-    localStorage = require('cls-hooked');
-var moment = require('moment');
+    dbLogsUrl = process.env.DB_LOGS_URL,
+    environment = process.env.NODE_ENV,
+    containerName = process.env.CONTAINER_NAME,
+    localStorage = require('cls-hooked'),
+    os = require("os"),
+    hostname = os.hostname(),
+    moment = require('moment');
 
 mongoose.Promise = global.Promise;
 
 try {
-    mongodb = mongoose.connect(DB_LOGS_URL)
+    mongodb = mongoose.connect(dbLogsUrl)
 } catch (error) {
     console.error(error);
 }
@@ -58,10 +62,10 @@ let bunyanLogger = bunyan.createLogger({
         err: bunyan.stdSerializers.err
     },
     name: 'pns-logger',
-    context: pns_instance,
-    type: '',
-    msg: '',
-    content: {}
+    context: `${containerName}-${hostname}`,
+    environment: environment,
+    type: 'operational',
+    msg: ''
 });
 
 function generateLogId () {
@@ -107,28 +111,51 @@ let logger = {
 exports.logger =logger;
 
 function attachResponseBody (req, res) {
-
     let oldWrite = res.write,
-        oldEnd = res.end;
-
-    let chunks = "";
+        oldEnd = res.end,
+        buffer = [];
 
     res.write = function (chunk) {
-        chunks += chunk.toString('utf8');
+        buffer.push(new Buffer(chunk));
         oldWrite.apply(res,arguments)
+
+        res.responseBody = buffer;
     };
 
     res.end = function (chunk) {
-        if (chunk)
-            chunks += chunk.toString('utf8');;
+        if (chunk) {
+            buffer.push(new Buffer(chunk))
+            oldEnd.apply(res, arguments);
 
-        try {
-            res.responseBody = JSON.parse(chunks.toString());
-        }
-        catch(e){};
+            res.responseBody = buffer;
+        }        
+
         oldEnd.apply(res, arguments);
-    }
+    }      
+}
 
+function parseResponseBody(req, res){
+    return new Promise((resolve, reject) => {
+        let responseHeaders = res.getHeaders();
+
+        if(responseHeaders && responseHeaders['content-encoding'] === 'gzip') {
+            zlib.unzip(Buffer.concat(res.responseBody), (err, buffer) => {
+                if (!err) {
+                    try {
+                        let a = buffer.toString()
+
+                        resolve(JSON.parse(a))
+                    }
+                    catch(e){};
+                }
+            });
+        } else  {
+            try {
+                resolve(JSON.parse(res.responseBody.toString()))
+            }
+            catch(e){};
+        }
+    })
 }
 
 exports.middleware = function (options) {
@@ -142,33 +169,31 @@ exports.middleware = function (options) {
 
 
     return function (req, res, next) {
-
-        if(defaultOptions.attachResponseBody)
+        if(defaultOptions.attachResponseBody) {
             attachResponseBody(req, res);
-
+        }
+                  
         requestNamespace.run(() => {
             let logId = generateLogId();
             requestNamespace.set('logId', logId);
 
             logger.info({
-                type: 'app',
-                requestMethod: req.method,
-                json: {
-                    requestBody: req.body || undefined
-                },
+                json: req.body || undefined,
+                requestHeaders: req.headers,
                 requestUrl: req.originalUrl,
+                requestMethod: req.method
             }, 'Incoming request');
 
-            res.on('finish', () => {
-                logger.info({
-                    type: 'app',
-                    json: {
-                        responseBody: res.responseBody || undefined
-                    },
-                    responseStatus: res.statusCode
-                }, 'Request completed');
-            });
+            res.on('finish', async () => {
+                let parsedResponseBody = await parseResponseBody(req, res);
 
+                logger.info({
+                    json:  parsedResponseBody || null,
+                    responseStatus: res.statusCode,
+                    requestUrl: req.originalUrl,
+                    requestMethod: req.method,
+                }, 'Request completed');                
+            });
             next();
         });
     }

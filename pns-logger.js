@@ -3,7 +3,6 @@ let bunyan = require('bunyan'),
     zlib = require("zlib"),
     Schema = mongoose.Schema,
     mongodb,
-    dbLogsUrl = process.env.DB_LOGS_URL,
     environment = process.env.NODE_ENV,
     containerName = process.env.CONTAINER_NAME,
     localStorage = require('cls-hooked'),
@@ -14,8 +13,17 @@ let bunyan = require('bunyan'),
 mongoose.Promise = global.Promise;
 
 try {
-    mongodb = mongoose.connect(dbLogsUrl)
+    let mongoUrl;
+
+    if (environment === 'test') 
+        mongoUrl = process.env.DB_TEST;
+    else 
+        mongoUrl = process.env.DB_LOGS_URL;
+       
+    mongodb = mongoose.connect(mongoUrl);
+
 } catch (error) {
+    console.log(`PNS logger error:`);
     console.error(error);
 }
 

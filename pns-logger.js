@@ -4,7 +4,10 @@ let bunyan = require('bunyan'),
     Schema = mongoose.Schema,
     mongodb,
     environment = process.env.NODE_ENV,
-    containerName = process.env.CONTAINER_NAME,
+    dbUrl = process.env.DB_URL,
+    dbTestingUrl = process.env.DB_TESTING_URL,
+    replicaSet = process.env.DB_REPLICASET,
+    dbLogs = process.env.DB_LOGS
     localStorage = require('cls-hooked'),
     os = require("os"),
     hostname = os.hostname(),
@@ -12,15 +15,16 @@ let bunyan = require('bunyan'),
 
 mongoose.Promise = global.Promise;
 
-try {
-    let mongoUrl;
 
-    if (environment === 'test') 
-        mongoUrl = process.env.DB_TEST;
+try {
+    let connectionString;
+
+    if (environment === 'testing') 
+        connectionString = `${dbTestingUrl}${dbLogs}?${replicaSet}`;
     else 
-        mongoUrl = process.env.DB_LOGS_URL;
+        connectionString = `${dbUrl}${dbLogs}?${replicaSet}`;
        
-    mongodb = mongoose.connect(mongoUrl);
+    mongodb = mongoose.connect(connectionString);
 
 } catch (error) {
     console.log(`PNS logger error:`);
@@ -70,7 +74,7 @@ let bunyanLogger = bunyan.createLogger({
         err: bunyan.stdSerializers.err
     },
     name: 'pns-logger',
-    context: `${containerName}-${hostname}`,
+    context: hostname,
     environment: environment,
     type: 'operational',
     msg: ''
@@ -209,9 +213,8 @@ exports.middleware = function (options) {
 
 exports.log = (mongoDoc) => {
 
-    mongoDoc.timestamp = moment().format('YYYY-DD-MM HH:mm:ss');
+    mongoDoc.timestamp = moment().format('YYYY-MM-DD HH:mm:ss');
 
-    logger.info('doc for logging:');
     logger.info({json: {mongoDoc}});
 
     let mDoc = new LogEntry(mongoDoc);

@@ -186,7 +186,7 @@ exports.middleware = function (options) {
         }
                   
         requestNamespace.run(() => {
-            if(req.originalUrl != '/version') {
+            if(req.originalUrl.indexOf('/version') < 0) {
                 let logId = generateLogId();
                 requestNamespace.set('logId', logId);
 

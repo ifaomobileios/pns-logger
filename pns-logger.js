@@ -186,26 +186,29 @@ exports.middleware = function (options) {
         }
                   
         requestNamespace.run(() => {
-            let logId = generateLogId();
-            requestNamespace.set('logId', logId);
-
-            logger.info({
-                json: req.body || undefined,
-                requestHeaders: req.headers,
-                requestUrl: req.originalUrl,
-                requestMethod: req.method
-            }, 'Incoming request');
-
-            res.on('finish', async () => {
-                let parsedResponseBody = await parseResponseBody(req, res);
+            if(req.originalUrl != '/version') {
+                let logId = generateLogId();
+                requestNamespace.set('logId', logId);
 
                 logger.info({
-                    json:  parsedResponseBody || null,
-                    responseStatus: res.statusCode,
+                    json: req.body || undefined,
+                    requestHeaders: req.headers,
                     requestUrl: req.originalUrl,
-                    requestMethod: req.method,
-                }, 'Request completed');                
-            });
+                    requestMethod: req.method
+                }, 'Incoming request');
+
+                res.on('finish', async () => {
+                    let parsedResponseBody = await parseResponseBody(req, res);
+
+                    logger.info({
+                        json:  parsedResponseBody || null,
+                        responseStatus: res.statusCode,
+                        requestUrl: req.originalUrl,
+                        requestMethod: req.method,
+                    }, 'Request completed');                
+                });
+            }   
+            
             next();
         });
     }

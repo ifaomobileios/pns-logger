@@ -1,6 +1,6 @@
 {
   "name": "pns-logger",
-  "version": "2.2.5",
+  "version": "2.2.6",
   "description": "",
   "main": "pns-logger.js",
   "scripts": {

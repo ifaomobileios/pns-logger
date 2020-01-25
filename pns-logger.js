@@ -230,6 +230,7 @@ exports.log = (mongoDoc) => {
     });
 };
 
+exports.generateLogId = generateLogId;
 exports.mongodb = mongodb;
 exports.LogEntry = LogEntry;
 exports.disconnect = () => { mongodb.disconnect() };

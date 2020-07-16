@@ -9,7 +9,7 @@
   "dependencies": {
     "bunyan": "^2.0.2",
     "cls-hooked": "^4.2.2",
-    "mongoose": "4.5.10"
+    "mongoose": "5.9.24"
   },
   "author": "",
   "license": "ISC"

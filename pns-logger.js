@@ -4,7 +4,8 @@ let bunyan = require('bunyan'),
     Schema = mongoose.Schema,
     mongodb,
     settings = require('/src/settings/settings_main'),
-    dbUrl = settings.db.host,
+    dbProtocol = settings.db.protocol,
+    dbHost = settings.db.host,
     dbTestingUrl = settings.db.testingHost,
     replicaSet = settings.db.replicaSet,
     dbLogs = settings.db.logs,
@@ -12,6 +13,7 @@ let bunyan = require('bunyan'),
     localStorage = require('cls-hooked'),
     os = require("os"),
     hostname = os.hostname(),
+    credentials = require("/etc/mb/db/credentials.json"),
     moment = require('moment');
 
 mongoose.Promise = global.Promise;
@@ -23,7 +25,7 @@ try {
     if (environment === 'testing') 
         connectionString = `${dbTestingUrl}${dbLogs}?${replicaSet}`;
     else 
-        connectionString = `${dbUrl}${dbLogs}?${replicaSet}`;
+        connectionString = `${dbProtocol}${credentials.adminUsername}:${credentials.adminPassword}@${dbHost}${dbLogs}?authSource=${credentials.adminDb}&${replicaSet}`;
        
     mongodb = mongoose.connect(connectionString);
 

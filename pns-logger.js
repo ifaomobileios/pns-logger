@@ -1,69 +1,9 @@
 let bunyan = require('bunyan'),
-    mongoose = require('mongoose'),
     zlib = require("zlib"),
-    Schema = mongoose.Schema,
-    mongodb,
-    settings = require('/src/settings/settings_main'),
-    dbProtocol = settings.db.protocol,
-    dbHost = settings.db.host,
-    dbTestingUrl = settings.db.testingHost,
-    replicaSet = settings.db.replicaSet,
-    dbLogs = settings.db.logs,
     environment = process.env.NODE_ENV,
     localStorage = require('cls-hooked'),
     os = require("os"),
-    hostname = os.hostname(),
-    credentials = require("/etc/mb/db/credentials.json"),
-    moment = require('moment');
-
-mongoose.Promise = global.Promise;
-
-
-try {
-    let connectionString;
-
-    if (environment === 'testing') 
-        connectionString = `${dbTestingUrl}${dbLogs}?${replicaSet}`;
-    else 
-        connectionString = `${dbProtocol}${credentials.adminUsername}:${credentials.adminPassword}@${dbHost}${dbLogs}?authSource=${credentials.adminDb}&${replicaSet}`;
-       
-    mongodb = mongoose.connect(connectionString);
-
-} catch (error) {
-    console.log(`PNS logger error:`);
-    console.error(error);
-}
-
-// mongo logger
-let logSchema = {
-    'Device ID': String,
-    'User ID': String,
-    'Server Name': String,
-    'System Name': String,
-    'Application ID': String,
-    'Device Type': String,
-    'level': String,
-    'tag': String,
-    'timestamp': String,
-    'message': String,
-    'PUSH URL': String,
-    'MANIC MESSENGER RESULT': String,
-    'ROUTING KEY': String
-};
-
-let LogEntrySchema = new Schema(logSchema);
-
-LogEntrySchema.path('message', {
-    set: (data) => {
-        if ('string' === typeof data) {
-            return data;
-        } else {
-            return JSON.stringify(data);
-        }
-    }
-});
-
-let LogEntry = mongodb.model('pnslog', LogEntrySchema);
+    hostname = os.hostname();
 
 function getRequestLogId () {
     let request = localStorage.getNamespace('request');
@@ -202,10 +142,14 @@ exports.middleware = function (options) {
 
                 res.on('finish', async () => {
                     let parsedResponseBody = await parseResponseBody(req, res);
+                    let stringifiedResponseBody = JSON.stringify(parsedResponseBody);
+                    let responseBody = {
+                        responseBody: stringifiedResponseBody || null
+                    };
 
                     logger.info({
-                        json:  parsedResponseBody || null,
-                        responseStatus: res.statusCode,
+                        json: responseBody,
+                        status: res.statusCode,
                         requestUrl: req.originalUrl,
                         requestMethod: req.method,
                     }, 'Request completed');                
@@ -217,22 +161,4 @@ exports.middleware = function (options) {
     }
 };
 
-exports.log = (mongoDoc) => {
-
-    mongoDoc.timestamp = moment().format('YYYY-MM-DD HH:mm:ss');
-
-    logger.info({json: {mongoDoc}});
-
-    let mDoc = new LogEntry(mongoDoc);
-
-    mDoc.save((err) => {
-        if (err) {
-            logger.warn(err);
-        }
-    });
-};
-
 exports.generateLogId = generateLogId;
-exports.mongodb = mongodb;
-exports.LogEntry = LogEntry;
-exports.disconnect = () => { mongodb.disconnect() };

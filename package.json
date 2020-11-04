@@ -1,6 +1,6 @@
 {
   "name": "pns-logger",
-  "version": "2.3.0",
+  "version": "2.4.0",
   "description": "",
   "main": "pns-logger.js",
   "scripts": {
@@ -8,8 +8,7 @@
   },
   "dependencies": {
     "bunyan": "^2.0.2",
-    "cls-hooked": "^4.2.2",
-    "mongoose": "4.5.10"
+    "cls-hooked": "^4.2.2"
   },
   "author": "",
   "license": "ISC"

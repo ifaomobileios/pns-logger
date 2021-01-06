@@ -130,7 +130,7 @@ exports.middleware = function (options) {
                   
         requestNamespace.run(() => {
             if(req.originalUrl.indexOf('/version') < 0) {
-                let logId = generateLogId();
+                let logId = req.headers['log-id'] || generateLogId();
                 requestNamespace.set('logId', logId);
 
                 logger.info({

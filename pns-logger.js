@@ -131,10 +131,18 @@ exports.middleware = function (options) {
         requestNamespace.run(() => {
             if(req.originalUrl.indexOf('/version') < 0) {
                 let logId = req.headers['log-id'] || generateLogId();
+                let extractedRequestFields = extractImportantLogFields(req.body);
+                let stringifiedRequestBody = JSON.stringify(req.body) || "";
+
                 requestNamespace.set('logId', logId);
 
+                if (stringifiedRequestBody.length > 8190) { // Elasticsearch supports only 8192 UTF-8 characters per field
+                    stringifiedRequestBody = stringifiedRequestBody.substring(0, 8190)
+                }
+
                 logger.info({
-                    json: req.body || undefined,
+                    // json: req.body || undefined,
+                    json: Object.assign(extractedRequestFields, {requestBody: stringifiedRequestBody}),
                     requestHeaders: req.headers,
                     requestUrl: req.originalUrl,
                     requestMethod: req.method
@@ -143,6 +151,11 @@ exports.middleware = function (options) {
                 res.on('finish', async () => {
                     let parsedResponseBody = await parseResponseBody(req, res);
                     let stringifiedResponseBody = JSON.stringify(parsedResponseBody);
+
+                    if (stringifiedResponseBody.length > 8190) { // Elasticsearch supports only 8192 UTF-8 characters per field
+                        stringifiedResponseBody = stringifiedResponseBody.substring(0, 8190)
+                    }
+
                     let responseBody = {
                         responseBody: stringifiedResponseBody || null
                     };
@@ -160,5 +173,26 @@ exports.middleware = function (options) {
         });
     }
 };
+
+function extractImportantLogFields(data){
+    let importantFieldNames = {
+        userguid: { name: 'userGUID', type: 'string'},
+        tripid: { name: 'tripID', type: 'string'},
+        eventtype: { name: 'eventType', type: 'string'},
+        tripdescription: { name: 'tripDescription', type: 'string'},
+        deviceid: { name: 'deviceID', type: 'string'},
+        applicationid: { name: 'applicationID', type: 'string'},
+        email: { name: 'email', type: 'string'}
+    };
+    let obj = {};
+
+    for (let key in data) {
+        if(importantFieldNames[key.toLowerCase()] && importantFieldNames[key.toLowerCase()].type == typeof data[key]){
+            obj[importantFieldNames[key.toLowerCase()].name] = data[key]; 
+        };
+    }
+
+    return obj
+}
 
 exports.generateLogId = generateLogId;

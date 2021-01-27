@@ -99,14 +99,14 @@ function parseResponseBody(req, res){
                     try {
                         let a = buffer.toString()
 
-                        resolve(JSON.parse(a))
+                        resolve(a)
                     }
                     catch(e){};
                 }
             });
         } else  {
             try {
-                resolve(JSON.parse(res.responseBody.toString()))
+                resolve(res.responseBody.toString())
             }
             catch(e){};
         }
@@ -149,8 +149,7 @@ exports.middleware = function (options) {
                 }, 'Incoming request');
 
                 res.on('finish', async () => {
-                    let parsedResponseBody = await parseResponseBody(req, res);
-                    let stringifiedResponseBody = JSON.stringify(parsedResponseBody);
+                    let stringifiedResponseBody = await parseResponseBody(req, res);
 
                     if (stringifiedResponseBody.length > 8190) { // Elasticsearch supports only 8192 UTF-8 characters per field
                         stringifiedResponseBody = stringifiedResponseBody.substring(0, 8190)

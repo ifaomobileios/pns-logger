@@ -71,7 +71,7 @@ function attachResponseBody (req, res) {
         buffer = [];
 
     res.write = function (chunk) {
-        buffer.push(new Buffer(chunk));
+        buffer.push(Buffer.from(chunk));
         oldWrite.apply(res,arguments)
 
         res.responseBody = buffer;
@@ -79,13 +79,13 @@ function attachResponseBody (req, res) {
 
     res.end = function (chunk) {
         if (chunk) {
-            buffer.push(new Buffer(chunk))
+            buffer.push(Buffer.from(chunk))
             oldEnd.apply(res, arguments);
 
             res.responseBody = buffer;
+        } else {
+            oldEnd.apply(res, arguments);
         }        
-
-        oldEnd.apply(res, arguments);
     }      
 }
 
@@ -99,14 +99,14 @@ function parseResponseBody(req, res){
                     try {
                         let a = buffer.toString()
 
-                        resolve(a)
+                        resolve(JSON.parse(a))
                     }
                     catch(e){};
                 }
             });
         } else  {
             try {
-                resolve(res.responseBody.toString())
+                resolve(JSON.parse(res.responseBody.toString()))
             }
             catch(e){};
         }
@@ -149,7 +149,8 @@ exports.middleware = function (options) {
                 }, 'Incoming request');
 
                 res.on('finish', async () => {
-                    let stringifiedResponseBody = await parseResponseBody(req, res);
+                    let parsedResponseBody = await parseResponseBody(req, res);
+                    let stringifiedResponseBody = JSON.stringify(parsedResponseBody);
 
                     if (stringifiedResponseBody.length > 8190) { // Elasticsearch supports only 8192 UTF-8 characters per field
                         stringifiedResponseBody = stringifiedResponseBody.substring(0, 8190)

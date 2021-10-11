@@ -132,7 +132,13 @@ exports.middleware = function (options) {
             if(req.originalUrl.indexOf('/version') < 0) {
                 let logId = req.headers['log-id'] || generateLogId();
                 let extractedRequestFields = extractImportantLogFields(req.body);
-                let stringifiedRequestBody = JSON.stringify(req.body) || "";
+                let stringifiedRequestBody;
+
+                if(Buffer.isBuffer(req.body)){
+                    stringifiedRequestBody = req.body.toString();
+                } else {
+                    stringifiedRequestBody = JSON.stringify(req.body) || "";
+                }
 
                 requestNamespace.set('logId', logId);
 

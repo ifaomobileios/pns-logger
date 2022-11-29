@@ -106,7 +106,11 @@ function parseResponseBody(req, res){
             });
         } else  {
             try {
-                resolve(JSON.parse(res.responseBody.toString()))
+                if(responseHeaders && responseHeaders['content-type'].indexOf('application/xml') > -1){
+                    resolve(res.responseBody.toString())
+                } else {
+                    resolve(JSON.parse(res.responseBody.toString()))
+                }
             }
             catch(e){};
         }
